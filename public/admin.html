@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mosaic Army - Admin</title>
+    <style>
+        body { background: #111; color: #eee; font-family: 'Montserrat', sans-serif; padding: 20px; }
+        h1 { color: #4CAF50; }
+        .frame-card { background: #222; border: 1px solid #444; padding: 15px; margin-bottom: 15px; border-radius: 5px; display: flex; align-items: center; gap: 20px; }
+        .frame-card img { width: 240px; height: 136px; border: 1px solid #000; }
+        .info { flex-grow: 1; }
+        button { background: #ff4444; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        button:hover { background: #cc0000; }
+    </style>
+</head>
+<body>
+    <h1>QG Mosaic Army - Modération</h1>
+    <div id="password-section">
+        <input type="password" id="admin-pwd" placeholder="Mot de passe admin" style="padding:10px;">
+        <button id="login-btn" style="background:#4CAF50;">Se connecter</button>
+    </div>
+    <div id="frames-list" style="display:none; margin-top: 30px;">
+        <p>Chargement des frames...</p>
+    </div>
+    
+    <script>
+        const pwdInput = document.getElementById('admin-pwd');
+        const loginBtn = document.getElementById('login-btn');
+        const framesList = document.getElementById('frames-list');
+        const passwordSection = document.getElementById('password-section');
+        let adminToken = '';
+
+        loginBtn.addEventListener('click', () => {
+            adminToken = pwdInput.value;
+            passwordSection.style.display = 'none';
+            framesList.style.display = 'block';
+            loadFrames();
+        });
+
+        async function loadFrames() {
+            try {
+                const res = await fetch('/api/admin/frames', { headers: { 'Authorization': adminToken } });
+                if (!res.ok) throw new Error('Mot de passe incorrect ou erreur réseau');
+                const frames = await res.json();
+                
+                if (frames.length === 0) {
+                    framesList.innerHTML = '<p>Aucune frame validée pour l\'instant.</p>';
+                    return;
+                }
+                
+                framesList.innerHTML = '';
+                frames.forEach(f => {
+                    const card = document.createElement('div');
+                    card.className = 'frame-card';
+                    card.innerHTML = `
+                        <img src="${f.url}" alt="Frame ${f.id}">
+                        <div class="info">
+                            <h3>Frame #${f.id}</h3>
+                            <p>Auteur: ${f.author}</p>
+                        </div>
+                        <button onclick="banFrame(${f.id})">❌ Libérer la frame</button>
+                    `;
+                    framesList.appendChild(card);
+                });
+            } catch (e) {
+                alert(e.message);
+                passwordSection.style.display = 'block';
+                framesList.style.display = 'none';
+            }
+        }
+
+        async function banFrame(frameId) {
+            if (!confirm(`Es-tu sûr de vouloir LIBÉRER la frame #${frameId} ? Elle sera supprimée et remise en jeu.`)) return;
+            try {
+                const res = await fetch(`/api/admin/ban/${frameId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': adminToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Frame libérée avec succès !');
+                    loadFrames();
+                } else {
+                    alert('Erreur: ' + data.error);
+                }
+            } catch (e) {
+                alert('Erreur réseau.');
+            }
+        }
+    </script>
+</body>
+</html>

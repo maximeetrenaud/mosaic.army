@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiement - Exquisite Walk</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f0f0; color: #333; text-align: center; margin: 0; padding: 50px; }
+        .checkout-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: inline-block; max-width: 400px; }
+        h1 { color: #635bff; margin-bottom: 5px; } /* Stripe purple */
+        .price { font-size: 2em; font-weight: bold; margin: 20px 0; color: #111; }
+        button { background: #635bff; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
+        button:hover { background: #4b45c6; }
+        .mock-note { font-size: 0.9em; color: #888; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="checkout-box">
+        <h1>Paiement Sécurisé</h1>
+        <p>Achat de la Frame <strong id="frame-display">...</strong></p>
+        
+        <div class="price">1.00 €</div>
+        
+        <button id="pay-btn">Simuler le paiement par CB</button>
+        
+        <p class="mock-note">Ceci est une fausse page de paiement pour tester le système avant d'intégrer le vrai Stripe.</p>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const frameId = urlParams.get('frameId');
+        
+        document.getElementById('frame-display').innerText = `n°${frameId}`;
+
+        document.getElementById('pay-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('pay-btn');
+            btn.disabled = true;
+            btn.innerText = 'Paiement en cours...';
+
+            // On simule un petit délai bancaire (1.5s)
+            setTimeout(async () => {
+                const res = await fetch('/api/mock-webhook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ frameId: frameId })
+                });
+
+                if (res.ok) {
+                    alert('Paiement réussi ! Ta frame est en ligne.');
+                    window.location.href = '/'; // Retour au cadavre exquis
+                } else {
+                    alert('Erreur lors du paiement.');
+                    btn.disabled = false;
+                    btn.innerText = 'Réessayer';
+                }
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
